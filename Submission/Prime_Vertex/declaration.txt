@@ -1,0 +1,15 @@
+DECLARATION - NEXUS OptiML 2026, Operation Insight
+
+Team name: Prime Vertex
+Member 1 full name: Nirmal Parajapati
+Member 2 full name: Prerana Kamath
+Date: 19 October 2026
+
+We declare that:
+1. We did not share code, notebooks, model files, or prediction CSVs with other teams.
+2. We did not use another team's submission.
+3. We did not hand-label test rows.
+4. We did not use external data.
+
+Signed (Member 1, typed by Member 1 only): Nirmal
+Signed (Member 2, typed by Member 2 only): Prerana

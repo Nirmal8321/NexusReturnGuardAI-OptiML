@@ -1,0 +1,36 @@
+Team Prime Vertex - NexusReturnGuard write-up
+
+1. DATA JOINS, TIMESTAMPS, MISSING VALUES
+Train and test were concatenated (is_train flag) so both get identical features. Customers had 3,029 duplicate rows
+(max 2 per customer): static fields come from the latest record, loyalty_tier comes from an as-of join on
+record_updated_at so no future tier reaches an earlier order. Products, stores and the weekly calendar were joined
+many-to-one with row-count asserts after every merge (0 orphan keys). Calendar joins on the Monday of the order week.
+order_ts is a single naive "YYYY-MM-DD HH:MM:SS" format; tz_hint is not a real timezone and was dropped. Many stamps
+are batch times (minute 01), tested as a flag but removed from the final model. Messy labels were fixed by removing
+non-letters and fuzzy matching (difflib, cutoff 0.8): customer region 101 -> 22, product category 60 -> 12.
+Missing values stay NaN (trees handle them); missing flags were added for session_clicks, freight_cost, discount.
+Raw coupon_code (88% missing, 39,979 codes) became a has_coupon flag.
+
+2. VALIDATION
+Time split only, because test is a future period: fit on months 1-18 (Jan 2023 - Jun 2024), validate on months 19-25
+(Jul - Dec 2024). Target encodings were built inside the split from earlier months only. Final models retrain on all
+24 months. Per-month validation AUC was tracked. Validation AUC was about 0.70-0.71 but public LB was only 0.56, so
+validation was optimistic for the future test period, and we could not fully explain the gap.
+
+3. WHAT IMPROVED THE SCORE
+- Past-only target encoding of store, product, customer, supplier, banner: +0.012 validation AUC.
+- Found that the promo_channel_code effect (P5 returns 39-44%, P0 about 9%) disappeared after month 15
+  (all codes converged to 18% by months 22-25), so promo features were removed.
+- Lean feature set: dropped features that grow with time or shift (customer order counters, frequency counts,
+  order-size aggregates, hour, minute flags). Public LB 0.56084 (with promo) -> 0.56356 (lean) -> 0.56367 (final).
+- Final model: rank average of LightGBM (3 seeds) and CatBoost on 65 features. Models: see code/ and model/.
+
+4. CONTRIBUTIONS
+__MEMBER_1_NAME__: EDA (data quality checks, target and drift analysis, signal ranking); validation design
+(time split); target encoding; all modelling and experiments (LightGBM, CatBoost, ablations, drift diagnostics);
+discovery that the promo effect disappeared after month 15; feature pruning; final blend; all Kaggle submissions;
+this package (scripts, README, write-up).
+__MEMBER_2_NAME__: data cleaning, table merges and feature engineering (notebook NexusReturnGuard_02_features:
+customer de-duplication, label cleaning, joins with row-count checks, time, tenure, price, order-level, cross
+and history features, frequency encodings, saved full.parquet); exported and saved the final model files (model/).
+Tooling: an AI assistant (Claude) was used for code guidance and review; all runs and submissions were done by the team.
